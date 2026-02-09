@@ -37,3 +37,5 @@ node_modules
 
 # build assets
 lib
+
+.idea
