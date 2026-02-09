@@ -9,6 +9,20 @@ const createUpgradeHandler = require('./createUpgradeHandler');
 
 
 module.exports = {
+    /**
+     * 启动中间人代理服务器
+     * @param {Object} options 配置
+     * @param {Number} options.port 代理端口
+     * @param {String} options.caCertPath CA证书路径
+     * @param {String} options.caKeyPath CA私钥路径
+     * @param {Function} options.sslConnectInterceptor SSL连接拦截器
+     * @param {Function} options.requestInterceptor 请求拦截器
+     * @param {Function} options.responseInterceptor 响应拦截器
+     * @param {Number} options.getCertSocketTimeout 获取证书超时时间
+     * @param {Array} options.middlewares 中间件
+     * @param {Object} options.externalProxy 外部代理
+     * @returns {http.Server} http代理服务器（关闭请使用.close()方法）
+     */
     createProxy({
         port = config.defaultPort,
         caCertPath,
@@ -77,7 +91,10 @@ module.exports = {
                 upgradeHandler(req, socket, head, ssl);
             });
         });
+
+        return server;
     },
+    // 创建CA证书
     createCA(caBasePath = config.getDefaultCABasePath()) {
         return tlsUtils.initCA(caBasePath);
     }
