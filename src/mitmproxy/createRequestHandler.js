@@ -1,11 +1,14 @@
 const http = require('http');
 const https = require('https');
 const url = require('url');
+const { v4: uuidv4 } = require('uuid');
 const commonUtil = require('../common/util');
 const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
 
 // create requestHandler function
 module.exports = function createRequestHandler(requestInterceptor, responseInterceptor, middlewares, externalProxy) {
+
+    const requestId = uuidv4();
 
     // return
     return function requestHandler(req, res, ssl) {
@@ -29,7 +32,7 @@ module.exports = function createRequestHandler(requestInterceptor, responseInter
                 }
                 try {
                     if (typeof requestInterceptor === 'function') {
-                        requestInterceptor.call(null, rOptions, req, res, ssl, next);
+                        requestInterceptor.call(null, requestId, rOptions, req, res, proxyReq, ssl, next);
                     } else {
                         resolve();
                     }
@@ -74,7 +77,8 @@ module.exports = function createRequestHandler(requestInterceptor, responseInter
                     req.on('aborted', function () {
                         proxyReq.abort();
                     });
-                    req.pipe(proxyReq);
+                    requestInterceptorPromise();
+                    // req.pipe(proxyReq);
 
                 }
 
@@ -84,13 +88,12 @@ module.exports = function createRequestHandler(requestInterceptor, responseInter
         // workflow control
         (async () => {
 
-            await requestInterceptorPromise();
+            var proxyRes = await proxyRequestPromise();
+
 
             if (res.finished) {
                 return false;
             }
-
-            var proxyRes = await proxyRequestPromise();
 
 
             var responseInterceptorPromise = new Promise((resolve, reject) => {
@@ -99,7 +102,7 @@ module.exports = function createRequestHandler(requestInterceptor, responseInter
                 }
                 try {
                     if (typeof responseInterceptor === 'function') {
-                        responseInterceptor.call(null, req, res, proxyReq, proxyRes, ssl, next);
+                        responseInterceptor.call(null, requestId, res, proxyRes, ssl, next);
                     } else {
                         resolve();
                     }
